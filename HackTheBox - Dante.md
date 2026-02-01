@@ -166,7 +166,7 @@ Using wordpress scan
 [+] WordPress version 5.4.1 identified (Insecure, released on 2020-04-29).
 ```
 
-Let's enumerate it via wpscan: `wpscan --url http://10.10.110.100:65000/wordpress --api-token sV6jGZK9539zGX8g5jzGvbiIr63CxSKiC3YnQA7esE0 -o wordpress-scan`
+Let's enumerate it via wpscan: `wpscan --url http://10.10.110.100:65000/wordpress --api-token <your-wpscan-api-token> -o wordpress-scan`
 
 Found a swp file for wp-config.php: `wp-config.php.swp`
 
