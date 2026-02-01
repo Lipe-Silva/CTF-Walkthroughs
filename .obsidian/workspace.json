@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "TryHackMe - CyberLens.md",
+                "file": "TryHackMe - Pyrat.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "TryHackMe - CyberLens"
+              "title": "TryHackMe - Pyrat"
             }
           },
           {
@@ -203,6 +203,7 @@
   "lastOpenFiles": [
     "TryHackMe - CyberLens.md",
     "HackTheBox - Dante.md",
+    "Untitled",
     "TryHackMe - Pyrat.md",
     "TryHackMe - W1seguy.md"
   ]
