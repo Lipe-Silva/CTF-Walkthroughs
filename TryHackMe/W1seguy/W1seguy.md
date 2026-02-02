@@ -21,10 +21,11 @@ Its encoded using **XOR Encoding** and we can decode the flag if we have the dec
 
 Now lets take a look at the code, download it and open it up with any code editor of your preference. Also if you have any trouble with code analysis you can put it into chatgpt and ask it to explain the code. But, basically the code is a demo of the server on port 1337 the only diference being the fake flag.
 
+
+This code is a demo of the server located on port 1337:
 <details>
 <summary>full code</summary>
   
-This code is a demo of the server located on port 1337
 
 ```python
 
@@ -84,19 +85,23 @@ there are two note worthy parts of the code that can help us break the cipher, f
 ```
     hex_encoded = xored.encode().hex()
     return hex_encoded
- ```
+```
+
 from this snipet of code we can conclude that **the flag is first XOR Encoded then Hex Encoded** 
 
 and last and most importantly,
+
 ```
 res = ''.join(random.choices(string.ascii_letters + string.digits, k=5))
 key = str(res)
 ```
+
 from this we conclude that **the encryption key is alphanumerical and only 5 digits in length**
 
 with these two clues in mind we can try to find the encyption key and break the cipher. 
 ![]()
 ## first flag
+
 A common approach to cipher cracking is to look for repeating letters and patterns. As you might have noticed every flag on Tryhackme starts with "THM{" we can use this information to partialiy crack the key.
 
 We can use a tool like https://gchq.github.io/CyberChef/ to achive this
@@ -107,4 +112,3 @@ Since THM{ are the first characters in the original text they must be the first 
 ![]()
 ## second flag
 
-![]()
