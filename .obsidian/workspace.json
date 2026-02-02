@@ -27,12 +27,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "HackTheBox - Dante.md",
+                "file": "TryHackMe - Smol.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "HackTheBox - Dante"
+              "title": "TryHackMe - Smol"
             }
           }
         ],
@@ -199,12 +199,24 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "68050c47e623d621",
+  "active": "52e235fb56a1b533",
   "lastOpenFiles": [
-    "TryHackMe - CyberLens.md",
-    "HackTheBox - Dante.md",
-    "Untitled",
+    "Images/Pasted image 20251211103853.png",
+    "Images/Pasted image 20251211102532.png",
+    "Images/Pasted image 20251210221338.png",
+    "Images/Pasted image 20251210212728.png",
+    "Images/Pasted image 20251210212323.png",
+    "Images/Pasted image 20251210211910.png",
+    "Images/Pasted image 20251210211211.png",
+    "Images/Pasted image 20251210204348.png",
+    "Images/Pasted image 20251210204247.png",
+    "Images/Pasted image 20251210204113.png",
+    "Images/Pasted image 20251210203748.png",
     "TryHackMe - Pyrat.md",
+    "TryHackMe - Smol.md",
+    "Images",
+    "HackTheBox - Dante.md",
+    "TryHackMe - CyberLens.md",
     "TryHackMe - W1seguy.md"
   ]
 }
