@@ -7,7 +7,7 @@
 .trash/
 
 # Uncomment if you NEVER want Obsidian configs tracked
-# .obsidian/
+.obsidian/
 
 ############################
 # OS / Editor junk
